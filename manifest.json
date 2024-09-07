@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "AutoLoginMate",
+  "version": "1.0",
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "idle",
+    "alarms",
+    "storage",
+    "offscreen"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://172.22.2.6/*"],
+      "js": ["login.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "host_permissions": [
+    "https://172.22.2.6/*"
+  ],
+  "icons": {
+    "16": "/assets/icon16.png",
+    "48": "/assets/icon32.png",
+    "128": "/assets/icon48.png"
+  }
+}

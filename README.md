@@ -1,1 +1,1 @@
-# AutoLoginMate
+# Auto-Logger
