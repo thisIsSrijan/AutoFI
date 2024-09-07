@@ -16,7 +16,7 @@ function waitForElement(selector, successCallback, failureCallback) {
           console.log(`Error while waiting for element with selector "${selector}". Number of retries: ${retries} and error: `, error);
           clearInterval(interval);
       }
-  }, 10); //Check every 10ms x 40 maxRetries = 400ms total
+  }, 5); //Check every 5ms x 40 maxRetries = 200ms total
 }
 
 function closeTab() {
@@ -86,7 +86,7 @@ function tryLogin() {
                       console.log('Last login time set successfully:', Date.now());
                     }
                   });
-                  setTimeout(()=>{closeTab()}, 300); //wait 0.3 seconds before closing
+                  setTimeout(()=>{closeTab()}, 400); //wait 0.4 seconds before closing
                   }catch(error){
                     console.log('Error during the login attempt:', error);
                   }
