@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const autoLoginStatus = document.getElementById('autoLoginStatus');
     const AUTO_LOGIN_ENABLED_KEY = 'autoLoginEnabled';
 
-    // Load saved credentials from Chrome storage
+    //Load saved credentials from Chrome storage
     chrome.storage.sync.get(['username', 'password'], (result) => {
         if (result.username && result.password) {
             document.getElementById('greetingMessage').textContent = `Login ID: ${result.username}`;
@@ -20,25 +20,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Load and set the auto-login toggle state
+    //Load & set the auto-login toggle state
     chrome.storage.local.get('autoLoginEnabled', (data) => {
         if (data.autoLoginEnabled !== undefined) {
             autoLoginToggle.checked = data.autoLoginEnabled;
         } else {
-            // Set default state to true if autoLoginEnabled is not found
+            //default state is true if autoLoginEnabled is not found
             autoLoginToggle.checked = true;
             chrome.storage.local.set({ autoLoginEnabled: true });
         }
         updateAutoLoginStatus();
     });
 
-    // Update the auto-login status text
+    //Update the auto-login status text
     function updateAutoLoginStatus() {
         if(autoLoginStatus !== null)
             autoLoginStatus.textContent = `Auto-Login: ${autoLoginToggle.checked ? 'On' : 'Off'}`;
     }
 
-    // Save the credentials to Chrome storage
+    //Save the credentials to Chrome storage
     saveButton.addEventListener('click', () => {
         const username = usernameInput.value;
         const password = passwordInput.value;
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Allow updating the credentials
+    //Allow updating the credentials
     updateCredentialsButton.addEventListener('click', () => {
         document.getElementById('greeting').style.display = 'none';
         credentialsForm.style.display = 'block';
@@ -72,38 +72,15 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.runtime.sendMessage({ action: 'manualLogin' });
     });
 
-    // Handle auto-login toggle change
-    // autoLoginToggle.addEventListener('change', () => {
-    //     const isChecked = autoLoginToggle.checked;
-    //     chrome.storage.local.set({ autoLoginEnabled: isChecked }, () => {
-    //         updateAutoLoginStatus();
-    //     });
-    // });
-
-    // Handle auto-login toggle change
-// autoLoginToggle.addEventListener('change', () => {
-//     const isChecked = autoLoginToggle.checked;
-//     chrome.storage.local.set({ autoLoginEnabled: isChecked }, () => {
-//         updateAutoLoginStatus();
-//         // Send message to background script about auto-login status change
-//         chrome.runtime.sendMessage({
-//             action: 'updateAutoLogin',
-//             autoLoginEnabled: isChecked
-//         });
-//     });
-// });
-
     // Add an event listener to update the auto-login status when the toggle changes
     autoLoginToggle.addEventListener('change', () => {
         const isChecked = autoLoginToggle.checked;
         chrome.storage.local.set({ [AUTO_LOGIN_ENABLED_KEY]: isChecked }, () => {
-            // autoLoginStatus.textContent = isChecked ? 'Auto-login: On' : 'Auto-login: Off';
             // Send a message to background.js to update the status
             chrome.runtime.sendMessage({ action: 'updateAutoLogin', autoLoginEnabled: isChecked });
             updateAutoLoginStatus();
         });
     });
-
 
     // //redirecting to my linkedin
     const developerLink = document.getElementById('developerId');

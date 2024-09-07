@@ -1,4 +1,4 @@
-const CLOSE_TAB_DELAY_MS = 10000; //this is the timeout condition that if the loginjs doesnt close the tab automatically, the close after 10 seconds
+const CLOSE_TAB_DELAY_MS = 10000; //timeout condition
 const LOGIN_INTERVAL_HOURS = 3.9;
 const LOGIN_INTERVAL_MINUTES = 239;
 const IS_CREDENTIALS_UPDATED_KEY = 'isCredentialsUpdated';
@@ -7,23 +7,6 @@ const UNIVERSITY_URL = 'https://172.22.2.6/connect/PortalMain';
 const PERIODIC_LOGIN_CHECK_KEY = 'periodicLoginCheck';
 let originalTabId = null;
 let loginPortalTabId = null;
-
-//On installation of extension, open popup automatically
-chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason === 'install') {
-    chrome.action.openPopup();
-  }
-});
-
-// Set up idle detection (for 5 minutes of inactivity it will consider )
-chrome.idle.setDetectionInterval(300);
-chrome.idle.onStateChanged.addListener((newState) => {
-  if (newState === "active") {
-      console.log("System is active again after sleep/idle");
-      // Check login status or perform any re-login tasks here
-      checkLogin();
-  }
-});
 
 function updateLoginAlarm(periodicLoginCheck) {
   if (!periodicLoginCheck || periodicLoginCheck <= 0) {
@@ -35,45 +18,6 @@ function updateLoginAlarm(periodicLoginCheck) {
   });
 }
 
-// Initialize credentials flag
-function initializeCredentialsFlag() {
-  chrome.storage.local.get(IS_CREDENTIALS_UPDATED_KEY, (data) => {
-    if (chrome.runtime.lastError) {
-      console.log("Error retrieving credentials flag:", chrome.runtime.lastError.message);
-      return;
-    }
-    if (data[IS_CREDENTIALS_UPDATED_KEY] === undefined) {
-      chrome.storage.local.set({ [IS_CREDENTIALS_UPDATED_KEY]: false });
-    }
-  });
-}
-
-//Initialize auto-login flag
-function initializeAutoLoginFlag() {
-  chrome.storage.local.get(AUTO_LOGIN_ENABLED_KEY, (data) => {
-    if (chrome.runtime.lastError) {
-      console.log("Error retrieving auto-login flag:", chrome.runtime.lastError.message);
-      return;
-    }
-    if (data[AUTO_LOGIN_ENABLED_KEY] === undefined) {
-      chrome.storage.local.set({ [AUTO_LOGIN_ENABLED_KEY]: true });
-    }
-  });
-}
-
-// Initialize periodicLoginCheck with persistent storage
-function initializePeriodicLoginCheck() {
-  chrome.storage.local.get(PERIODIC_LOGIN_CHECK_KEY, (data) => {
-    if (chrome.runtime.lastError) {
-      console.log("Error retrieving periodic login check:", chrome.runtime.lastError.message);
-      return;
-    }
-    const periodicLoginCheck = data[PERIODIC_LOGIN_CHECK_KEY] || 1; // Set default to 1 minute initially
-    updateLoginAlarm(periodicLoginCheck);
-  });
-}
-
-// Update periodicLoginCheck persistently
 function setPeriodicLoginCheck(value) {
   if (!value || value <= 0) {
     value = 1; // Set to 1 minute if the value is invalid
@@ -89,19 +33,73 @@ function setPeriodicLoginCheck(value) {
   });
 }
 
-//Store the ID of the currently active tab
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  if (chrome.runtime.lastError) {
-    console.log("Error querying the active tab:", chrome.runtime.lastError.message);
-    return;
-  }
-  if (tabs.length > 0) {
-    originalTabId = tabs[0].id;
-  } else {
-    console.log("No active tab found.");
-  }
-});
+//INITIALIZER DEFINITIONS
 
+function initializeCredentialsFlag() {
+  chrome.storage.local.get(IS_CREDENTIALS_UPDATED_KEY, (data) => {
+    if (chrome.runtime.lastError) {
+      console.log("Error retrieving credentials flag:", chrome.runtime.lastError.message);
+      return;
+    }
+    if (data[IS_CREDENTIALS_UPDATED_KEY] === undefined) {
+      chrome.storage.local.set({ [IS_CREDENTIALS_UPDATED_KEY]: false });
+    }
+  });
+}
+
+function initializeAutoLoginFlag() {
+  chrome.storage.local.get(AUTO_LOGIN_ENABLED_KEY, (data) => {
+    if (chrome.runtime.lastError) {
+      console.log("Error retrieving auto-login flag:", chrome.runtime.lastError.message);
+      return;
+    }
+    if (data[AUTO_LOGIN_ENABLED_KEY] === undefined) {
+      chrome.storage.local.set({ [AUTO_LOGIN_ENABLED_KEY]: true });
+    }
+  });
+}
+
+function initializePeriodicLoginCheck() {
+  chrome.storage.local.get(PERIODIC_LOGIN_CHECK_KEY, (data) => {
+    if (chrome.runtime.lastError) {
+      console.log("Error retrieving periodic login check:", chrome.runtime.lastError.message);
+      return;
+    }
+    const periodicLoginCheck = data[PERIODIC_LOGIN_CHECK_KEY] || 1; // Set default to 1 minute initially
+    updateLoginAlarm(periodicLoginCheck);
+  });
+}
+
+function storeOriginalTab() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (chrome.runtime.lastError) {
+      console.log("Error querying the active tab:", chrome.runtime.lastError.message);
+      return;
+    }
+    if (tabs.length > 0) {
+      originalTabId = tabs[0].id;
+      console.log("Stored original tab id:", originalTabId);
+    } else {
+      console.log("No active tab found.");
+    }
+  });
+}
+
+function switchBackToOriginalTab() {
+  if (originalTabId !== null) {
+    chrome.tabs.update(originalTabId, { active: true }, () => {
+      if (chrome.runtime.lastError) {
+        console.log("Error switching back to original tab:", chrome.runtime.lastError.message);
+      } else {
+        console.log("Switched back to original tab:", originalTabId);
+      }
+    });
+  } else {
+    console.log("Original tab ID is not stored.");
+  }
+}
+
+//script injector
 function loginAndCloseTab(tabId) {
   loginPortalTabId = tabId;
   chrome.scripting.executeScript({
@@ -132,11 +130,10 @@ function loginAndCloseTab(tabId) {
           console.log(`Tab with id ${tabId} does not exist or has already been closed.`);
         }
       });
-    }, CLOSE_TAB_DELAY_MS);
+    }, CLOSE_TAB_DELAY_MS); //Timeout condition
   });
 }
 
-// handle login for automation REVIEW WINDOW PART
 function handleLogin() {
   chrome.storage.local.get(IS_CREDENTIALS_UPDATED_KEY, (data) => {
     if (chrome.runtime.lastError) {
@@ -146,10 +143,10 @@ function handleLogin() {
 
     if (data[IS_CREDENTIALS_UPDATED_KEY]) {
       // First, check if there is a current window available
+      storeOriginalTab();
       chrome.windows.getCurrent({ populate: true }, (window) => {
         if (chrome.runtime.lastError) {
           console.log("Error getting current window:", chrome.runtime.lastError.message);
-          // return;
         }
 
         if (!window) {
@@ -179,9 +176,9 @@ function handleLogin() {
   });
 }
 
-// To check login and whether the user has recently logged in
+//first check for last login and then proceed for login accordingly
 function checkLogin() {
-      // Check if auto-login is enabled
+    //if auto-login is disabled, always return
   chrome.storage.local.get(AUTO_LOGIN_ENABLED_KEY, (data) => {
     if (!data[AUTO_LOGIN_ENABLED_KEY]) {
       console.log('Auto-login is disabled, skipping login check.');
@@ -204,23 +201,22 @@ function checkLogin() {
         console.log('Next login check after', periodicLoginCheck, "minutes");
     
         if (lastLoginTime === 0 || timeSinceLastLoginHours >= LOGIN_INTERVAL_HOURS) {
-          handleLogin(); // Perform login if more than 3.9 hours have passed
+          handleLogin(); //Perform login if more than 3.9 hours have passed
         } else {
           console.log('You are already logged in.');
         }
-        
         setPeriodicLoginCheck(periodicLoginCheck);
       });
-    }});
+    }
+  });
 }
 
-
-// Initialize flags
+//INITIALIZERS
 initializeCredentialsFlag();
 initializeAutoLoginFlag();
 initializePeriodicLoginCheck(); //initiates the auto feauture, by default after 1 min
 
-// Manual login trigger and close tab trigger
+//MESSAGE LISTNERS FROM POPUP AND LOGIN JS
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === 'manualLogin') {
     handleLogin();
@@ -246,6 +242,7 @@ chrome.runtime.onMessage.addListener((request) => {
           console.log(`Error closing login portal tab: ${chrome.runtime.lastError.message}`);
         } else {
           console.log(`Login portal tab with id ${loginPortalTabId} closed successfully.`);
+          switchBackToOriginalTab();
         }
       });
     }
@@ -261,18 +258,37 @@ chrome.runtime.onMessage.addListener((request) => {
 }
 });
 
-// Handle Chrome startup
+//ONLY FOR AUTO: ENABLED FEATURES
+
+//Handle Chrome startup
 chrome.runtime.onStartup.addListener(() => {
   console.log("Chrome startup detected, attempting login.");
   checkLogin();
 });
 
+//On installation of extension, open popup automatically
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    chrome.action.openPopup();
+  }
+});
+
+// Set up idle detection (for 5 minutes of inactivity it will consider )
+chrome.idle.setDetectionInterval(300);
+chrome.idle.onStateChanged.addListener((newState) => {
+  if (newState === "active") {
+      console.log("System is active again after sleep/idle");
+      // Check login status or perform any re-login tasks here
+      checkLogin();
+  }
+});
+
+// ALARM LISTNER (will always listen for periodicLogin , checkLogin will handle auto-login toggle check)
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'checkLoginPeriodically') {
       checkLogin();
     }
   });
-
 
 //Prevent service worker from dying
 // solution credits: https://stackoverflow.com/questions/66618136/persistent-service-worker-in-chrome-extension
@@ -286,21 +302,3 @@ async function createOffscreen() {
 chrome.runtime.onStartup.addListener(createOffscreen);
 self.onmessage = e => {}; // keepAlive
 createOffscreen();
-
-
-// -----------------TESTING-----------------
-function getCurrentTime() {
-  const now = new Date();
-
-  let hours = now.getHours();
-  let minutes = now.getMinutes();
-  let seconds = now.getSeconds();
-
-  hours = hours < 10 ? '0' + hours : hours;
-  minutes = minutes < 10 ? '0' + minutes : minutes;
-  seconds = seconds < 10 ? '0' + seconds : seconds;
-
-  const formattedTime = `${hours}:${minutes}:${seconds}`;
-
-  return formattedTime;
-}
