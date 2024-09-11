@@ -30,7 +30,9 @@ AutoFi is a Chrome extension that automates the login process for the LNMIIT Wi-
 
 ## Customization for Your Network
 
-If you want AutoFi to work for your college or organization, simply replace the necessary selector elements in the **login.js** file to match the login portal's HTML structure and directly call the **tryLogin** function instead of calling the **tryLoginProcess** function.
+If you want AutoFi to work for your college or organization, first replace the necessary selector elements in the **login.js** file to match the login portal's HTML structure and directly call the **tryLogin** function instead of calling the **tryLoginProcess** function.
+Change the time interval `LOGIN_INTERVAL_MINUTES` and `LOGIN_INTERVAL_HOURS` after which your uni network logs you out in the **background.js** file.
+Change `UNIVERSITY_URL` to your university's login portal url in **background.js** file.
 
 ## License
 
